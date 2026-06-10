@@ -27,7 +27,7 @@
   1. **Local-Only Mode** (Default/Offline): Stores data locally on device (IndexedDB) with zero cloud setup.
   2. **Firebase Mode**: Syncs groups and bills in real-time using Firebase Auth & Cloud Firestore.
   3. **Supabase Mode** (Future-ready): Relational database structures for self-hosting.
-* 📶 **Offline-First & Auto-Sync**: Log expenses basement supermarkets or deep tunnels; changes cache locally and sync to the cloud database when signal returns.
+* 📶 **Offline-First & Auto-Sync**: Log expenses in basement supermarkets or deep tunnels; changes cache locally and sync to the cloud database when signal returns.
 * 🧮 **Greedy Debt Simplification**: Built-in split balance matching algorithm simplifies group balances to minimize payments.
 * 🎨 **Premium Aesthetics**: Rich dark mode dashboard and light mode settings panel that automatically matches system OS themes.
 * 📈 **CSS Spending Analytics**: Interactive category percentages and budget metrics generated using lightweight, performant CSS progress bars (no heavy external chart libraries).
