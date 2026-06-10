@@ -30,6 +30,7 @@
 * 📶 **Offline-First & Auto-Sync**: Log expenses in basement supermarkets or deep tunnels; changes cache locally and sync to the cloud database when signal returns.
 * 🧮 **Greedy Debt Simplification**: Built-in split balance matching algorithm simplifies group balances to minimize payments.
 * 🎨 **Premium Aesthetics**: Rich dark mode dashboard and light mode settings panel that automatically matches system OS themes.
+* 🏷️ **Username Handles (@handles)**: Users register custom, unique username handles (enforced via Firestore indexes). Easily search and add group members by handle with real-time availability checks.
 * 📈 **CSS Spending Analytics**: Interactive category percentages and budget metrics generated using lightweight, performant CSS progress bars (no heavy external chart libraries).
 
 ---
