@@ -89,6 +89,7 @@
   border-radius: var(--radius-md);
   margin-bottom: var(--spacing-lg);
   gap: 4px;
+  background: var(--tab-header-bg) !important;
 }
 
 .tab-btn {
@@ -111,8 +112,9 @@
 }
 
 .tab-btn.active {
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
+  background: var(--tab-active-bg);
+  color: var(--tab-active-text);
+  box-shadow: var(--tab-active-shadow);
   border: 1px solid var(--glass-border);
 }
 

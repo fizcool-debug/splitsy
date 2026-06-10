@@ -34,6 +34,12 @@
   --glass-border-focus: rgba(143, 67, 255, 0.4);
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
   
+  /* Segmented Controls (Tabs) */
+  --tab-header-bg: rgba(255, 255, 255, 0.03);
+  --tab-active-bg: rgba(255, 255, 255, 0.1);
+  --tab-active-text: #ffffff;
+  --tab-active-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  
   /* Border Radius */
   --radius-sm: 8px;
   --radius-md: 14px;
@@ -75,6 +81,12 @@ body[data-theme="light"] {
   --glass-border: rgba(0, 0, 0, 0.07);
   --glass-border-focus: rgba(117, 40, 222, 0.4);
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+  
+  /* Segmented Controls (Tabs) */
+  --tab-header-bg: rgba(0, 0, 0, 0.04);
+  --tab-active-bg: #ffffff;
+  --tab-active-text: var(--text-primary);
+  --tab-active-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 /* Light Theme Element Adjustments */
@@ -122,6 +134,7 @@ html {
   flex-direction: column;
   min-height: 100vh;
   max-width: 100%;
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* Layout for mobile navigation vs desktop */
@@ -131,7 +144,7 @@ html {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding-bottom: 80px; /* Space for mobile bottom nav */
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)); /* Space for mobile bottom nav */
 }
 
 @media (min-width: 768px) {
