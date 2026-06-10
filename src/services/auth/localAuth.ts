@@ -29,22 +29,48 @@ export class LocalAuthService implements AuthService {
     this.listeners.forEach((cb) => cb(user));
   }
 
-  async signUp(email: string, password: string, displayName: string): Promise<UserProfile> {
+  private getUsersList(): LocalUserRecord[] {
+    const data = localStorage.getItem(USERS_LIST_KEY);
+    return data ? JSON.parse(data) : [];
+  }
+
+  async checkUsernameAvailable(username: string): Promise<boolean> {
+    const users = this.getUsersList();
+    return !users.some((u) => u.username?.toLowerCase() === username.toLowerCase());
+  }
+
+  async getUserByUsername(username: string): Promise<UserProfile | null> {
+    const users = this.getUsersList();
+    const found = users.find((u) => u.username?.toLowerCase() === username.toLowerCase());
+    if (!found) return null;
+    const { passwordHash, ...profile } = found;
+    return profile;
+  }
+
+  async signUp(email: string, password: string, displayName: string, username?: string): Promise<UserProfile> {
     // Small delay to simulate network latency
     await new Promise((resolve) => setTimeout(resolve, 600));
 
-    const usersData = localStorage.getItem(USERS_LIST_KEY);
-    const users: LocalUserRecord[] = usersData ? JSON.parse(usersData) : [];
+    const users = this.getUsersList();
 
     const existing = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
     if (existing) {
       throw new Error('Email already exists');
     }
 
+    if (username) {
+      const lowerUsername = username.toLowerCase();
+      const taken = users.some((u) => u.username?.toLowerCase() === lowerUsername);
+      if (taken) {
+        throw new Error(`Username "@${username}" is already taken. Please choose another.`);
+      }
+    }
+
     const newUser: LocalUserRecord = {
       uid: 'local_' + Math.random().toString(36).substr(2, 9),
       email: email.toLowerCase(),
       displayName,
+      username: username ? username.toLowerCase() : undefined,
       passwordHash: btoa(password), // Simple encoding for local mock
     };
 
@@ -61,8 +87,7 @@ export class LocalAuthService implements AuthService {
   async signIn(email: string, password: string): Promise<UserProfile> {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    const usersData = localStorage.getItem(USERS_LIST_KEY);
-    const users: LocalUserRecord[] = usersData ? JSON.parse(usersData) : [];
+    const users = this.getUsersList();
 
     const user = users.find(
       (u) => u.email.toLowerCase() === email.toLowerCase() && u.passwordHash === btoa(password)

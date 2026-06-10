@@ -1,7 +1,7 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     // Helper function to check if user is a member of a group
     function isGroupMember(groupId) {
       let group = get(/databases/$(database)/documents/groups/$(groupId));
@@ -13,7 +13,25 @@ service cloud.firestore {
          request.auth.token.email in group.data.memberEmails)
       );
     }
-    
+
+    // User profiles — readable by any authenticated user (for username lookup when adding group members)
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      // Allow create right after account creation — the new Firebase user is immediately authed
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Username reservation index — publicly readable so availability can be checked
+    // during sign-up BEFORE the user has an account (unauthenticated read is safe;
+    // the only data stored is {uid: "..."})
+    match /usernames/{username} {
+      allow read: if true;  // public read — needed for pre-signup availability check
+      allow create: if request.auth != null;
+      // Only the owner of the username can delete it
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
     // Groups rules
     match /groups/{groupId} {
       allow create: if request.auth != null && request.resource.data.createdBy == request.auth.uid;

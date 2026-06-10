@@ -1,20 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { authService } from '../services/backendSelector';
-import { Mail, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
+import { Mail, Lock, User, AtSign, AlertCircle, ArrowRight, CheckCircle } from 'lucide-react';
 import './AuthScreen.css';
 
 const isLocalProvider = import.meta.env.VITE_BACKEND_PROVIDER !== 'firebase';
+
+// Username validation: lowercase letters, numbers, underscores, 3-20 chars
+const USERNAME_REGEX = /^[a-z0-9_]{3,20}$/;
 
 export const AuthScreen: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showOfflinePrompt, setShowOfflinePrompt] = useState(false);
   const [offlineName, setOfflineName] = useState('Guest');
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Username availability state
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
+  const [usernameTimer, setUsernameTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleUsernameChange = useCallback((val: string) => {
+    const lower = val.toLowerCase().replace(/[^a-z0-9_]/g, '');
+    setUsername(lower);
+
+    if (usernameTimer) clearTimeout(usernameTimer);
+
+    if (!lower || lower.length < 3) {
+      setUsernameStatus(lower.length > 0 && lower.length < 3 ? 'invalid' : 'idle');
+      return;
+    }
+
+    if (!USERNAME_REGEX.test(lower)) {
+      setUsernameStatus('invalid');
+      return;
+    }
+
+    setUsernameStatus('checking');
+    const timer = setTimeout(async () => {
+      try {
+        const available = await authService.checkUsernameAvailable?.(lower) ?? true;
+        setUsernameStatus(available ? 'available' : 'taken');
+      } catch {
+        setUsernameStatus('idle');
+      }
+    }, 500);
+    setUsernameTimer(timer);
+  }, [usernameTimer]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,12 +59,23 @@ export const AuthScreen: React.FC = () => {
       return;
     }
 
+    if (isSignUp && username && usernameStatus !== 'available') {
+      if (usernameStatus === 'taken') {
+        setError(`Username "@${username}" is already taken.`);
+        return;
+      }
+      if (usernameStatus === 'invalid' || (username.length > 0 && username.length < 3)) {
+        setError('Username must be 3–20 characters: lowercase letters, numbers, or underscores only.');
+        return;
+      }
+    }
+
     setLoading(true);
     setError('');
 
     try {
       if (isSignUp) {
-        await authService.signUp(email, password, displayName);
+        await authService.signUp(email, password, displayName, username || undefined);
       } else {
         await authService.signIn(email, password);
       }
@@ -51,7 +98,7 @@ export const AuthScreen: React.FC = () => {
       const randomId = Math.random().toString(36).substring(2, 7);
       const guestEmail = `guest_${randomId}@splitsy.local`;
       const guestPassword = `local_guest_pass_${randomId}`;
-      
+
       await authService.signUp(guestEmail, guestPassword, offlineName.trim());
     } catch (err: any) {
       console.error(err);
@@ -59,6 +106,23 @@ export const AuthScreen: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getUsernameStatusDisplay = () => {
+    if (!isSignUp || !username || usernameStatus === 'idle') return null;
+    if (usernameStatus === 'checking') {
+      return <span className="username-status checking">Checking availability...</span>;
+    }
+    if (usernameStatus === 'available') {
+      return <span className="username-status available"><CheckCircle size={13} /> @{username} is available</span>;
+    }
+    if (usernameStatus === 'taken') {
+      return <span className="username-status taken"><AlertCircle size={13} /> @{username} is already taken</span>;
+    }
+    if (usernameStatus === 'invalid') {
+      return <span className="username-status invalid">3–20 characters: letters, numbers, underscores only</span>;
+    }
+    return null;
   };
 
   return (
@@ -106,9 +170,9 @@ export const AuthScreen: React.FC = () => {
                 </>
               )}
             </button>
-            
-            <button 
-              type="button" 
+
+            <button
+              type="button"
               className="btn btn-secondary btn-auth"
               onClick={() => setShowOfflinePrompt(false)}
               disabled={loading}
@@ -135,6 +199,28 @@ export const AuthScreen: React.FC = () => {
                       required
                     />
                   </div>
+                </div>
+              )}
+
+              {isSignUp && (
+                <div className="input-group">
+                  <label htmlFor="signup-username-input">
+                    Username <span className="label-optional">(used to add you to groups)</span>
+                  </label>
+                  <div className="input-wrapper">
+                    <AtSign className="input-icon" size={18} />
+                    <input
+                      id="signup-username-input"
+                      type="text"
+                      placeholder="e.g. alex_smith"
+                      value={username}
+                      onChange={(e) => handleUsernameChange(e.target.value)}
+                      disabled={loading}
+                      autoComplete="username"
+                      maxLength={20}
+                    />
+                  </div>
+                  {getUsernameStatusDisplay()}
                 </div>
               )}
 
@@ -183,12 +269,14 @@ export const AuthScreen: React.FC = () => {
             </form>
 
             <div className="auth-footer">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="btn-toggle-mode"
                 onClick={() => {
                   setIsSignUp(!isSignUp);
                   setError('');
+                  setUsername('');
+                  setUsernameStatus('idle');
                 }}
                 disabled={loading}
               >

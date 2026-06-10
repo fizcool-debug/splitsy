@@ -4,19 +4,7 @@ import { databaseService } from '../services/backendSelector';
 import { calculateBalances } from '../utils/balanceCalculator';
 import { getMemberIdForUser } from '../utils/userResolver';
 import { Modal } from '../components/Modal';
-import { 
-  Plus, 
-  Trash2, 
-  UserPlus, 
-  ArrowUpRight, 
-  ArrowDownLeft, 
-  DollarSign, 
-  Users, 
-  ChevronRight,
-  FolderPlus,
-  AlertCircle,
-  RefreshCw
-} from 'lucide-react';
+import { Plus, Trash2, UserPlus, ArrowUpRight, ArrowDownLeft, DollarSign, Users, ChevronRight, FolderPlus, AlertCircle, RefreshCw, AtSign, CheckCircle } from 'lucide-react';
 import './Dashboard.css';
 
 export const Dashboard: React.FC = () => {
@@ -27,15 +15,17 @@ export const Dashboard: React.FC = () => {
     createGroup, 
     setCurrentGroupId,
     currency,
-    refreshGroups
+    refreshGroups,
+    getUserByUsername
   } = useApp();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [description, setDescription] = useState('');
-  const [members, setMembers] = useState<{ name: string; email?: string }[]>([]);
-  const [newMemberName, setNewMemberName] = useState('');
-  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [members, setMembers] = useState<{ name: string; email?: string; username?: string }[]>([]);
+  const [newMemberInput, setNewMemberInput] = useState(''); // username or plain name
+  const [memberLookupStatus, setMemberLookupStatus] = useState<'idle' | 'searching' | 'found' | 'notfound'>('idle');
+  const [memberLookupResult, setMemberLookupResult] = useState<{ name: string; email: string; username: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -91,12 +81,65 @@ export const Dashboard: React.FC = () => {
 
   const netOverall = totalOwed - totalOwe;
 
-  const handleAddMember = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMemberName.trim()) return;
-    setMembers([...members, { name: newMemberName.trim(), email: newMemberEmail.trim() || undefined }]);
-    setNewMemberName('');
-    setNewMemberEmail('');
+  const [lookupTimer, setLookupTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleMemberInputChange = (val: string) => {
+    setNewMemberInput(val);
+    setMemberLookupResult(null);
+
+    if (lookupTimer) clearTimeout(lookupTimer);
+
+    // If input starts with '@' or looks like a username, try to look up the user
+    const cleaned = val.startsWith('@') ? val.slice(1) : val;
+    if (!cleaned.trim()) {
+      setMemberLookupStatus('idle');
+      return;
+    }
+
+    // Treat as username search if no spaces (usernames have no spaces)
+    if (!cleaned.includes(' ') && cleaned.length >= 2) {
+      setMemberLookupStatus('searching');
+      const timer = setTimeout(async () => {
+        try {
+          const found = await getUserByUsername(cleaned.toLowerCase());
+          if (found) {
+            setMemberLookupResult({ name: found.displayName, email: found.email, username: found.username || cleaned });
+            setMemberLookupStatus('found');
+          } else {
+            setMemberLookupStatus('notfound');
+            setMemberLookupResult(null);
+          }
+        } catch {
+          setMemberLookupStatus('notfound');
+          setMemberLookupResult(null);
+        }
+      }, 500);
+      setLookupTimer(timer);
+    } else {
+      // Multi-word input treated as plain name
+      setMemberLookupStatus('idle');
+    }
+  };
+
+  const handleAddMember = () => {
+    const raw = newMemberInput.trim();
+    if (!raw) return;
+
+    if (memberLookupResult) {
+      // Add resolved user by username
+      setMembers([...members, { 
+        name: memberLookupResult.name, 
+        email: memberLookupResult.email, 
+        username: memberLookupResult.username 
+      }]);
+    } else {
+      // Add as plain name-only member (offline/unregistered)
+      const cleaned = raw.startsWith('@') ? raw.slice(1) : raw;
+      setMembers([...members, { name: cleaned }]);
+    }
+    setNewMemberInput('');
+    setMemberLookupStatus('idle');
+    setMemberLookupResult(null);
   };
 
   const handleRemoveMember = (index: number) => {
@@ -108,14 +151,16 @@ export const Dashboard: React.FC = () => {
     if (!groupName.trim()) return;
     setSubmitting(true);
     setError('');
-    
+
     // Auto-add the currently typed member if they forgot to click the "+" button
     const finalMembers = [...members];
-    if (newMemberName.trim()) {
-      finalMembers.push({
-        name: newMemberName.trim(),
-        email: newMemberEmail.trim() || undefined
-      });
+    if (newMemberInput.trim()) {
+      if (memberLookupResult) {
+        finalMembers.push({ name: memberLookupResult.name, email: memberLookupResult.email, username: memberLookupResult.username });
+      } else {
+        const cleaned = newMemberInput.trim().startsWith('@') ? newMemberInput.trim().slice(1) : newMemberInput.trim();
+        finalMembers.push({ name: cleaned });
+      }
     }
 
     try {
@@ -124,8 +169,9 @@ export const Dashboard: React.FC = () => {
       setGroupName('');
       setDescription('');
       setMembers([]);
-      setNewMemberName('');
-      setNewMemberEmail('');
+      setNewMemberInput('');
+      setMemberLookupStatus('idle');
+      setMemberLookupResult(null);
       setError('');
       setIsModalOpen(false);
     } catch (err: any) {
@@ -335,28 +381,42 @@ export const Dashboard: React.FC = () => {
 
           {/* Add member form section */}
           <div className="add-member-section">
-            <h4 className="sub-section-title">Add Members (Flatmates/Friends)</h4>
+            <h4 className="sub-section-title">Add Members</h4>
+            <p className="member-search-hint">Type a @username to find registered users, or type a name to add manually.</p>
             
             <div className="add-member-row">
-              <input 
-                type="text" 
-                placeholder="Name" 
-                value={newMemberName}
-                onChange={(e) => setNewMemberName(e.target.value)}
-                disabled={submitting}
-              />
-              <input 
-                type="email" 
-                placeholder="Email (Optional)" 
-                value={newMemberEmail}
-                onChange={(e) => setNewMemberEmail(e.target.value)}
-                disabled={submitting}
-              />
-              <button 
-                type="button" 
+              <div className="member-input-wrapper">
+                <AtSign size={16} className="member-input-icon" />
+                <input
+                  type="text"
+                  placeholder="username or name"
+                  value={newMemberInput}
+                  onChange={(e) => handleMemberInputChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddMember();
+                    }
+                  }}
+                  disabled={submitting}
+                />
+                {memberLookupStatus === 'searching' && (
+                  <span className="member-lookup-indicator searching">Searching...</span>
+                )}
+                {memberLookupStatus === 'found' && memberLookupResult && (
+                  <span className="member-lookup-indicator found">
+                    <CheckCircle size={13} /> {memberLookupResult.name}
+                  </span>
+                )}
+                {memberLookupStatus === 'notfound' && newMemberInput.trim().length > 0 && (
+                  <span className="member-lookup-indicator notfound">Not a registered user — will be added by name</span>
+                )}
+              </div>
+              <button
+                type="button"
                 className="btn btn-secondary btn-add-member"
                 onClick={handleAddMember}
-                disabled={submitting}
+                disabled={submitting || !newMemberInput.trim()}
                 aria-label="Add member"
               >
                 <UserPlus size={18} />
@@ -373,10 +433,10 @@ export const Dashboard: React.FC = () => {
                     </div>
                     <div className="member-info">
                       <span className="member-name">{member.name}</span>
-                      {member.email && <span className="member-email">{member.email}</span>}
+                      {member.username && <span className="member-email">@{member.username}</span>}
                     </div>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       className="btn-remove-member"
                       onClick={() => handleRemoveMember(index)}
                       disabled={submitting}

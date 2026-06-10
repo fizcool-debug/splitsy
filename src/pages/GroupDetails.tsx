@@ -255,8 +255,17 @@ export const GroupDetails: React.FC = () => {
   };
 
   const getMemberName = (id: string) => {
-    if (id === myMemberId) return 'You';
-    return currentGroup.members.find((m) => m.id === id)?.name || 'Unknown';
+    const member = currentGroup.members.find((m) => m.id === id);
+    if (!member) return 'Unknown';
+    // Always show @username if available, otherwise display name
+    return member.username ? `@${member.username}` : member.name;
+  };
+
+  // Display name (real name) for showing below the username handle
+  const getMemberDisplayName = (id: string) => {
+    const member = currentGroup.members.find((m) => m.id === id);
+    if (!member) return 'Unknown';
+    return member.name;
   };
 
   return (
@@ -270,7 +279,7 @@ export const GroupDetails: React.FC = () => {
         <div className="group-action-btns" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <button 
             className="btn btn-secondary btn-icon" 
-            onClick={refreshCurrentGroup}
+            onClick={() => refreshCurrentGroup()}
             disabled={currentGroupLoading}
             title="Sync with database"
             aria-label="Sync with database"
@@ -360,28 +369,36 @@ export const GroupDetails: React.FC = () => {
             ) : (
               <div className="expenses-list">
                 {expenses.map((exp) => {
+                  if (!exp) return null;
                   const userPaid = exp.paidBy === myMemberId;
-                  // Find what user owes or is owed
-                  const userSplit = exp.splits.find((s) => s.memberId === myMemberId);
-                  const userOwedShare = userPaid ? exp.amount - (userSplit ? userSplit.amount : 0) : 0;
-                  const userOwesShare = !userPaid && userSplit ? userSplit.amount : 0;
+                  
+                  // Find what user owes or is owed safely
+                  const userSplit = Array.isArray(exp.splits)
+                    ? exp.splits.find((s) => s && s.memberId === myMemberId)
+                    : null;
+                  
+                  const amountNum = Number(exp.amount) || 0;
+                  const splitAmountNum = userSplit ? (Number(userSplit.amount) || 0) : 0;
+                  
+                  const userOwedShare = userPaid ? amountNum - splitAmountNum : 0;
+                  const userOwesShare = !userPaid && userSplit ? splitAmountNum : 0;
 
                   return (
                     <div key={exp.id} className="expense-item glass-panel">
                       <div className="expense-left">
                         <div className="category-icon-bg">
-                          {getCategoryIcon(exp.category)}
+                          {getCategoryIcon(exp.category || '')}
                         </div>
                         <div className="expense-text">
-                          <h4 className="expense-title">{exp.title}</h4>
+                          <h4 className="expense-title">{exp.title || 'Untitled Bill'}</h4>
                           <p className="expense-subtext">
-                            Paid by <strong>{getMemberName(exp.paidBy)}</strong> &bull; {new Date(exp.date).toLocaleDateString()}
+                            Paid by <strong>{getMemberName(exp.paidBy || '')}</strong> &bull; {new Date(exp.date || Date.now()).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
                       
                       <div className="expense-middle">
-                        <span className="total-amount">{currency}{exp.amount.toFixed(2)}</span>
+                        <span className="total-amount">{currency}{amountNum.toFixed(2)}</span>
                         <span className="total-label">total bill</span>
                       </div>
 
@@ -449,7 +466,7 @@ export const GroupDetails: React.FC = () => {
                           </span>
                         </div>
                         <div className="debt-settle-row">
-                          <span className="debt-amount-tag">{currency}{debt.amount.toFixed(2)}</span>
+                          <span className="debt-amount-tag">{currency}{(debt.amount || 0).toFixed(2)}</span>
                           {(isUserDebtor || isUserCreditor || user?.uid) && (
                             <button 
                               className="btn btn-secondary btn-sm"
@@ -471,6 +488,7 @@ export const GroupDetails: React.FC = () => {
               <h3 className="section-sub-title">Individual Balances Breakdown</h3>
               <div className="members-balances-list">
                 {memberBalances.map((mb) => {
+                  if (!mb) return null;
                   const isPositive = mb.netBalance > 0.01;
                   const isNegative = mb.netBalance < -0.01;
                   const isMe = mb.memberId === myMemberId;
@@ -479,21 +497,27 @@ export const GroupDetails: React.FC = () => {
                     <div key={mb.memberId} className="member-balance-row">
                       <div className="member-row-left">
                         <div className="member-row-avatar">
-                          {mb.name.charAt(0).toUpperCase()}
+                          {(mb.name || 'U').charAt(0).toUpperCase()}
                         </div>
-                        <span className="member-row-name">
-                          {mb.name} {isMe ? '(You)' : ''}
-                        </span>
+                        <div className="member-row-name-block">
+                          <span className="member-row-name">
+                            {getMemberName(mb.memberId)} {isMe ? '' : ''}
+                          </span>
+                          {!isMe && getMemberDisplayName(mb.memberId) !== getMemberName(mb.memberId) && (
+                            <span className="member-row-realname">{getMemberDisplayName(mb.memberId)}</span>
+                          )}
+                          {isMe && <span className="member-row-you-badge">you</span>}
+                        </div>
                       </div>
                       
                       <div className="member-row-right">
                         {isPositive ? (
                           <span className="breakdown-balance text-success">
-                            Owed {currency}{mb.netBalance.toFixed(2)}
+                            Owed {currency}{(mb.netBalance || 0).toFixed(2)}
                           </span>
                         ) : isNegative ? (
                           <span className="breakdown-balance text-danger">
-                            Owes {currency}{Math.abs(mb.netBalance).toFixed(2)}
+                            Owes {currency}{Math.abs(mb.netBalance || 0).toFixed(2)}
                           </span>
                         ) : (
                           <span className="breakdown-balance text-muted">
@@ -512,19 +536,22 @@ export const GroupDetails: React.FC = () => {
               <div className="balances-section glass-panel">
                 <h3 className="section-sub-title">Settlement Logs</h3>
                 <div className="settlements-feed-list">
-                  {settlements.map((set) => (
-                    <div key={set.id} className="settlement-log-item">
-                      <CheckCircle size={16} className="text-success" />
-                      <div className="settlement-log-text">
-                        <strong>{getMemberName(set.fromMemberId)}</strong> paid{' '}
-                        <strong>{getMemberName(set.toMemberId)}</strong>{' '}
-                        <span className="text-success font-semibold">{currency}{set.amount.toFixed(2)}</span>
-                        <span className="settlement-date">
-                          &bull; {new Date(set.date).toLocaleDateString()}
-                        </span>
+                  {settlements.map((set) => {
+                    if (!set) return null;
+                    return (
+                      <div key={set.id} className="settlement-log-item">
+                        <CheckCircle size={16} className="text-success" />
+                        <div className="settlement-log-text">
+                          <strong>{getMemberName(set.fromMemberId || '')}</strong> paid{' '}
+                          <strong>{getMemberName(set.toMemberId || '')}</strong>{' '}
+                          <span className="text-success font-semibold">{currency}{(set.amount || 0).toFixed(2)}</span>
+                          <span className="settlement-date">
+                            &bull; {new Date(set.date || Date.now()).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

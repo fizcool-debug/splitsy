@@ -2,6 +2,7 @@ export interface Member {
   id: string;
   name: string;
   email?: string;
+  username?: string;
 }
 
 export interface Group {
@@ -42,7 +43,7 @@ export interface Settlement {
 }
 
 export interface DatabaseService {
-  createGroup(name: string, description: string, members: Omit<Member, 'id'>[], creatorId: string): Promise<string>;
+  createGroup(name: string, description: string, members: Omit<Member, 'id'>[], creatorId: string, creatorName?: string, creatorUsername?: string): Promise<string>;
   getGroups(userId: string, userEmail?: string): Promise<Group[]>;
   getGroupDetails(groupId: string): Promise<Group | null>;
   addExpense(expense: Omit<Expense, 'id'>): Promise<string>;

@@ -80,6 +80,14 @@
   color: var(--text-secondary);
 }
 
+.profile-username {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--accent-secondary) !important;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  letter-spacing: 0.02em;
+}
+
 .user-type-badge {
   display: inline-block;
   font-size: 10px;
@@ -148,3 +156,36 @@
   padding-left: var(--spacing-md);
   border-left: 2px solid var(--glass-border-focus);
 }
+
+.user-profile-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.logout-option-item {
+  border-top: 1px solid var(--glass-border);
+  padding-top: var(--spacing-md);
+  margin-top: var(--spacing-xs);
+}
+
+.btn-logout-settings {
+  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  color: var(--danger);
+  padding: 10px 20px;
+  font-size: 14px;
+}
+
+.btn-logout-settings:hover {
+  background: var(--danger);
+  color: #fff;
+  border-color: transparent;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(244, 63, 94, 0.25);
+}
+
+.btn-logout-settings:active {
+  transform: translateY(0);
+}
+

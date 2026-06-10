@@ -20,21 +20,22 @@ export class FirebaseDatabaseService implements DatabaseService {
     return db;
   }
 
-  async createGroup(name: string, description: string, members: Omit<Member, 'id'>[], creatorId: string): Promise<string> {
+  async createGroup(name: string, description: string, members: Omit<Member, 'id'>[], creatorId: string, creatorName?: string, creatorUsername?: string): Promise<string> {
     const dbInstance = this.getDbInstance();
     const groupCollectionRef = collection(dbInstance, 'groups');
     const docRef = doc(groupCollectionRef); // Pre-generate ID
     
     // Create members with unique IDs (using client-side generation or database)
     const groupMembers: Member[] = [
-      { id: creatorId, name: 'You (Creator)' }
+      { id: creatorId, name: creatorName || 'Creator', username: creatorUsername }
     ];
 
     members.forEach((m) => {
       groupMembers.push({
         id: 'member_' + Math.random().toString(36).substr(2, 9),
         name: m.name,
-        email: m.email
+        email: m.email,
+        username: m.username
       });
     });
 

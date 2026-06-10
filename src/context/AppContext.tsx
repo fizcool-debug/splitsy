@@ -33,6 +33,8 @@ interface AppContextType {
   setCurrency: (symbol: string) => void;
   theme: 'dark' | 'light' | 'system';
   setTheme: (theme: 'dark' | 'light' | 'system') => void;
+  getUserByUsername: (username: string) => Promise<UserProfile | null>;
+  checkUsernameAvailable: (username: string) => Promise<boolean>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -126,9 +128,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [user, refreshGroups]);
 
   // Fetch Current Group Details, Expenses and Settlements
-  const refreshCurrentGroup = useCallback(async () => {
+  const refreshCurrentGroup = useCallback(async (showFullLoading = false) => {
     if (!currentGroupId || !user) return;
-    setCurrentGroupLoading(true);
+    if (showFullLoading === true) {
+      setCurrentGroupLoading(true);
+    }
     try {
       const [details, expList, setList] = await Promise.all([
         databaseService.getGroupDetails(currentGroupId),
@@ -148,7 +152,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Reload current group when active ID changes
   useEffect(() => {
     if (currentGroupId) {
-      refreshCurrentGroup();
+      refreshCurrentGroup(true); // Show full loading spinner on initial load
     } else {
       setCurrentGroup(null);
       setExpenses([]);
@@ -162,7 +166,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const createGroup = async (name: string, description: string, members: Omit<Member, 'id'>[]) => {
     if (!user) throw new Error('Not authenticated');
-    const groupId = await databaseService.createGroup(name, description, members, user.uid);
+    const groupId = await databaseService.createGroup(
+      name, description, members,
+      user.uid,
+      user.displayName,
+      user.username
+    );
     await refreshGroups();
     return groupId;
   };
@@ -203,6 +212,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await authService.signOut();
   };
 
+  const getUserByUsername = async (username: string): Promise<UserProfile | null> => {
+    if (authService.getUserByUsername) {
+      return authService.getUserByUsername(username);
+    }
+    return null;
+  };
+
+  const checkUsernameAvailable = async (username: string): Promise<boolean> => {
+    if (authService.checkUsernameAvailable) {
+      return authService.checkUsernameAvailable(username);
+    }
+    return true;
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -226,7 +249,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         currency,
         setCurrency,
         theme,
-        setTheme
+        setTheme,
+        getUserByUsername,
+        checkUsernameAvailable
       }}
     >
       {children}

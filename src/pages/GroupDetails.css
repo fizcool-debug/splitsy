@@ -403,9 +403,37 @@
   color: var(--accent-secondary);
 }
 
+.member-row-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
 .member-row-name {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.member-row-realname {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 400;
+  font-family: inherit;
+}
+
+.member-row-you-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--accent-secondary);
+  background: rgba(0, 242, 254, 0.08);
+  border: 1px solid rgba(0, 242, 254, 0.15);
+  padding: 1px 6px;
+  border-radius: 8px;
+  width: fit-content;
+  font-family: inherit;
 }
 
 .breakdown-balance {

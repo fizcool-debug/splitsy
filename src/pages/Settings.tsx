@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { User, DollarSign, Database, ShieldAlert, Palette } from 'lucide-react';
+import { User, DollarSign, Database, ShieldAlert, Palette, LogOut } from 'lucide-react';
 import './Settings.css';
 
 const CURRENCIES = [
@@ -13,7 +13,7 @@ const CURRENCIES = [
 ];
 
 export const Settings: React.FC = () => {
-  const { user, currency, setCurrency, theme, setTheme } = useApp();
+  const { user, currency, setCurrency, theme, setTheme, signOut } = useApp();
   
   const isPreset = CURRENCIES.some((c) => c.symbol === currency);
   const [currencySelection, setCurrencySelection] = useState(isPreset ? currency : 'Custom');
@@ -58,16 +58,38 @@ export const Settings: React.FC = () => {
           </div>
           
           {user && (
-            <div className="user-profile-summary">
-              <div className="profile-large-avatar">
-                {user.displayName.charAt(0).toUpperCase()}
+            <div className="user-profile-wrapper">
+              <div className="user-profile-summary">
+                <div className="profile-large-avatar">
+                  {user.displayName.charAt(0).toUpperCase()}
+                </div>
+                <div className="profile-details-summary">
+                  <h4>{user.displayName}</h4>
+                  {user.username && (
+                    <p className="profile-username">@{user.username}</p>
+                  )}
+                  <p>{user.email}</p>
+                  <span className="user-type-badge">
+                    {user.email.endsWith('@splitsy.local') ? 'Guest Profile (Offline)' : 'Cloud User'}
+                  </span>
+                </div>
               </div>
-              <div className="profile-details-summary">
-                <h4>{user.displayName}</h4>
-                <p>{user.email}</p>
-                <span className="user-type-badge">
-                  {user.email.endsWith('@splitsy.local') ? 'Guest Profile (Offline)' : 'Cloud User'}
-                </span>
+
+              <div className="settings-option-item logout-option-item">
+                <div className="option-info">
+                  <span className="option-label-text">Sign Out</span>
+                  <p className="option-description">Log out of your current account. You will need to log back in to access synced groups.</p>
+                </div>
+                <div className="option-control">
+                  <button 
+                    type="button" 
+                    className="btn btn-logout-settings"
+                    onClick={signOut}
+                  >
+                    <LogOut size={16} />
+                    <span>Log Out</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}

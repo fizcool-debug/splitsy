@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Users, PieChart, LogOut, Settings } from 'lucide-react';
+import { Users, PieChart, Settings } from 'lucide-react';
 import './Navigation.css';
 
 interface NavigationProps {
@@ -9,7 +9,7 @@ interface NavigationProps {
 }
 
 export const Navigation: React.FC<NavigationProps> = ({ currentTab, setTab }) => {
-  const { user, signOut, setCurrentGroupId } = useApp();
+  const { user, setCurrentGroupId } = useApp();
 
   const handleLogoClick = () => {
     setCurrentGroupId(null);
@@ -60,10 +60,6 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, setTab }) =>
                 <p className="user-email">{user.email}</p>
               </div>
             </div>
-            <button className="btn-logout" onClick={signOut} title="Sign Out">
-              <LogOut size={18} />
-              <span>Sign Out</span>
-            </button>
           </div>
         )}
       </aside>
@@ -91,12 +87,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentTab, setTab }) =>
           <Settings size={24} />
           <span>Settings</span>
         </button>
-        {user && (
-          <button className="mobile-nav-item btn-logout-mobile" onClick={signOut}>
-            <LogOut size={24} />
-            <span>Exit</span>
-          </button>
-        )}
+
       </div>
     </>
   );

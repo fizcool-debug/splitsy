@@ -19,20 +19,21 @@ export class LocalDatabaseService implements DatabaseService {
     await localforage.setItem(GROUPS_KEY, groups);
   }
 
-  async createGroup(name: string, description: string, members: Omit<Member, 'id'>[], creatorId: string): Promise<string> {
+  async createGroup(name: string, description: string, members: Omit<Member, 'id'>[], creatorId: string, creatorName?: string, creatorUsername?: string): Promise<string> {
     const groupId = 'group_' + Math.random().toString(36).substr(2, 9);
     
     // Create members with unique IDs
     const groupMembers: Member[] = [
-      // Creator is added first
-      { id: creatorId, name: 'You (Creator)' }
+      // Creator is added first with their real name and username
+      { id: creatorId, name: creatorName || 'Creator', username: creatorUsername }
     ];
 
     members.forEach((m) => {
       groupMembers.push({
         id: 'member_' + Math.random().toString(36).substr(2, 9),
         name: m.name,
-        email: m.email
+        email: m.email,
+        username: m.username
       });
     });
 

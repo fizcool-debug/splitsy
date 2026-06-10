@@ -167,3 +167,41 @@
   color: #fff;
 }
 
+/* Username field extras */
+.label-optional {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.username-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  margin-top: 5px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+.username-status.available {
+  color: var(--success);
+  background: rgba(52, 211, 153, 0.08);
+}
+
+.username-status.taken {
+  color: var(--danger);
+  background: rgba(244, 63, 94, 0.08);
+}
+
+.username-status.invalid {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.username-status.checking {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+}
