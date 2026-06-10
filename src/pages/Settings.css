@@ -1,0 +1,150 @@
+.settings-container {
+  padding: var(--spacing-lg);
+  max-width: 100%;
+}
+
+.settings-header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.settings-sections-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  max-width: 650px;
+  margin: 0 auto;
+}
+
+.settings-card {
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+}
+
+.settings-card.danger-card {
+  border-color: rgba(244, 63, 94, 0.15);
+  background: radial-gradient(circle at 10% 10%, rgba(244, 63, 94, 0.03) 0%, transparent 80%),
+              var(--glass-bg);
+}
+
+.settings-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+  border-bottom: 1px solid var(--glass-border);
+  padding-bottom: var(--spacing-xs);
+}
+
+.settings-card-title {
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Profile summary card styling */
+.user-profile-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.profile-large-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-round);
+  background: var(--bg-tertiary);
+  border: 2px solid var(--glass-border-focus);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent-secondary);
+}
+
+.profile-details-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-details-summary h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.profile-details-summary p {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.user-type-badge {
+  display: inline-block;
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--accent-secondary);
+  background: rgba(0, 242, 254, 0.05);
+  border: 1px solid rgba(0, 242, 254, 0.15);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-top: 4px;
+  width: fit-content;
+}
+
+/* Option Items */
+.settings-option-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) 0;
+}
+
+@media (min-width: 576px) {
+  .settings-option-item {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-lg);
+  }
+}
+
+.option-info {
+  flex: 1;
+}
+
+.option-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.option-label-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.option-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.option-control {
+  min-width: 180px;
+}
+
+.currency-select, .custom-symbol-input {
+  width: 100%;
+  font-size: 14px;
+}
+
+.settings-option-item.sub-option {
+  margin-top: calc(-1 * var(--spacing-xs));
+  padding-left: var(--spacing-md);
+  border-left: 2px solid var(--glass-border-focus);
+}
