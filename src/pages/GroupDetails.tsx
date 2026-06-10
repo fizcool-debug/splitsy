@@ -528,38 +528,6 @@ export const GroupDetails: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {/* Leave Group Action */}
-            <div className="balances-section leave-group-section" style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
-              {!isSettled && (
-                <p className="text-muted" style={{ fontSize: '13px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  * You can only leave this group when your balance is completely settled (current: {currency}{myNetBalance > 0 ? '+' : ''}{myNetBalance.toFixed(2)}).
-                </p>
-              )}
-              <button
-                className="btn"
-                onClick={handleLeaveGroup}
-                disabled={!isSettled || leaving}
-                style={{
-                  background: isSettled ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-                  color: isSettled ? 'var(--danger)' : 'var(--text-muted)',
-                  border: isSettled ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--glass-border)',
-                  padding: '12px 24px',
-                  borderRadius: 'var(--radius-md)',
-                  fontWeight: '600',
-                  cursor: isSettled ? 'pointer' : 'not-allowed',
-                  transition: 'all var(--transition-fast)',
-                  width: '100%',
-                  maxWidth: '300px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem'
-                }}
-              >
-                {leaving ? <span className="spinner"></span> : 'Leave Group'}
-              </button>
-            </div>
           </div>
         )}
       </main>
