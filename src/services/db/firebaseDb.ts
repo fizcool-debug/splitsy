@@ -175,4 +175,48 @@ export class FirebaseDatabaseService implements DatabaseService {
 
     return settlements;
   }
+
+  async leaveGroup(groupId: string, memberId: string): Promise<void> {
+    const dbInstance = this.getDbInstance();
+    const docRef = doc(dbInstance, 'groups', groupId);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) {
+      throw new Error('Group does not exist.');
+    }
+
+    const group = docSnap.data() as Group;
+    const userMember = group.members.find((m) => m.id === memberId);
+    if (!userMember) {
+      throw new Error('Member not found in group.');
+    }
+
+    // Filter out the member
+    const updatedMembers = group.members.filter((m) => m.id !== memberId);
+    const updatedMemberIds = group.memberIds.filter((id) => id !== memberId);
+    
+    // Update memberEmails by filtering out this member's email
+    const updatedMemberEmails = updatedMembers
+      .map((m) => m.email?.toLowerCase())
+      .filter(Boolean) as string[];
+
+    // If no members left, delete the group document
+    if (updatedMembers.length === 0) {
+      await deleteDoc(docRef);
+      return;
+    }
+
+    // Reassign creator if the creator is leaving
+    let newCreatedBy = group.createdBy;
+    if (group.createdBy === memberId) {
+      newCreatedBy = updatedMembers[0].id;
+    }
+
+    await setDoc(docRef, {
+      ...group,
+      members: updatedMembers,
+      memberIds: updatedMemberIds,
+      memberEmails: updatedMemberEmails,
+      createdBy: newCreatedBy
+    });
+  }
 }

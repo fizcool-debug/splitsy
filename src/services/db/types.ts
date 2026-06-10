@@ -50,4 +50,5 @@ export interface DatabaseService {
   getExpenses(groupId: string): Promise<Expense[]>;
   addSettlement(settlement: Omit<Settlement, 'id'>): Promise<string>;
   getSettlements(groupId: string): Promise<Settlement[]>;
+  leaveGroup(groupId: string, memberId: string): Promise<void>;
 }

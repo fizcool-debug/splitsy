@@ -123,4 +123,46 @@ export class LocalDatabaseService implements DatabaseService {
     const settlements = await localforage.getItem<Settlement[]>(key);
     return settlements || [];
   }
+
+  async leaveGroup(groupId: string, memberId: string): Promise<void> {
+    const groups = await this.getGroupsList();
+    const groupIndex = groups.findIndex((g) => g.id === groupId);
+    if (groupIndex === -1) {
+      throw new Error('Group does not exist.');
+    }
+
+    const group = groups[groupIndex];
+    const userMember = group.members.find((m) => m.id === memberId);
+    if (!userMember) {
+      throw new Error('Member not found in group.');
+    }
+
+    // Filter out the member
+    const updatedMembers = group.members.filter((m) => m.id !== memberId);
+    const updatedMemberIds = group.memberIds.filter((id) => id !== memberId);
+
+    // If no members left, delete the group
+    if (updatedMembers.length === 0) {
+      groups.splice(groupIndex, 1);
+      await this.saveGroupsList(groups);
+      await localforage.removeItem(`expenses_${groupId}`);
+      await localforage.removeItem(`settlements_${groupId}`);
+      return;
+    }
+
+    // Reassign creator if the creator is leaving
+    let newCreatedBy = group.createdBy;
+    if (group.createdBy === memberId) {
+      newCreatedBy = updatedMembers[0].id;
+    }
+
+    groups[groupIndex] = {
+      ...group,
+      members: updatedMembers,
+      memberIds: updatedMemberIds,
+      createdBy: newCreatedBy
+    };
+
+    await this.saveGroupsList(groups);
+  }
 }

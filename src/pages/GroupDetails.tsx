@@ -40,10 +40,12 @@ export const GroupDetails: React.FC = () => {
     deleteExpense,
     addSettlement,
     currency,
-    refreshCurrentGroup
+    refreshCurrentGroup,
+    leaveGroup
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'expenses' | 'balances'>('expenses');
+  const [leaving, setLeaving] = useState(false);
 
   const myMemberId = React.useMemo(() => {
     return getMemberIdForUser(currentGroup, user);
@@ -210,6 +212,29 @@ export const GroupDetails: React.FC = () => {
         await deleteExpense(id);
       } catch (err) {
         console.error('Failed to delete expense:', err);
+      }
+    }
+  };
+
+  const myNetBalance = React.useMemo(() => {
+    const balanceObj = memberBalances.find((mb) => mb.memberId === myMemberId);
+    return balanceObj ? balanceObj.netBalance : 0;
+  }, [memberBalances, myMemberId]);
+
+  const isSettled = Math.abs(myNetBalance) < 0.01;
+
+  const handleLeaveGroup = async () => {
+    if (!currentGroup || !user) return;
+    if (window.confirm('Are you sure you want to leave this group? This will remove you from all calculations.')) {
+      setLeaving(true);
+      try {
+        await leaveGroup(currentGroup.id, myMemberId);
+        setCurrentGroupId(null); // Go back to dashboard
+      } catch (err) {
+        console.error('Failed to leave group:', err);
+        alert('Failed to leave group. Please check database connectivity.');
+      } finally {
+        setLeaving(false);
       }
     }
   };
@@ -475,6 +500,38 @@ export const GroupDetails: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* Leave Group Action */}
+            <div className="balances-section leave-group-section" style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
+              {!isSettled && (
+                <p className="text-muted" style={{ fontSize: '13px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  * You can only leave this group when your balance is completely settled (current: {currency}{myNetBalance > 0 ? '+' : ''}{myNetBalance.toFixed(2)}).
+                </p>
+              )}
+              <button
+                className="btn"
+                onClick={handleLeaveGroup}
+                disabled={!isSettled || leaving}
+                style={{
+                  background: isSettled ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255, 255, 255, 0.02)',
+                  color: isSettled ? 'var(--danger)' : 'var(--text-muted)',
+                  border: isSettled ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--glass-border)',
+                  padding: '12px 24px',
+                  borderRadius: 'var(--radius-md)',
+                  fontWeight: '600',
+                  cursor: isSettled ? 'pointer' : 'not-allowed',
+                  transition: 'all var(--transition-fast)',
+                  width: '100%',
+                  maxWidth: '300px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                {leaving ? <span className="spinner"></span> : 'Leave Group'}
+              </button>
+            </div>
           </div>
         )}
       </main>

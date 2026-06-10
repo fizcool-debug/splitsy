@@ -27,6 +27,7 @@ interface AppContextType {
   addExpense: (expense: Omit<Expense, 'id' | 'createdById'>) => Promise<string>;
   deleteExpense: (expenseId: string) => Promise<void>;
   addSettlement: (settlement: Omit<Settlement, 'id' | 'createdById'>) => Promise<string>;
+  leaveGroup: (groupId: string, memberId: string) => Promise<void>;
   signOut: () => Promise<void>;
   currency: string;
   setCurrency: (symbol: string) => void;
@@ -192,6 +193,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return settlementId;
   };
 
+  const leaveGroup = async (groupId: string, memberId: string) => {
+    if (!user) throw new Error('Not authenticated');
+    await databaseService.leaveGroup(groupId, memberId);
+    await refreshGroups();
+  };
+
   const signOut = async () => {
     await authService.signOut();
   };
@@ -214,6 +221,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addExpense,
         deleteExpense,
         addSettlement,
+        leaveGroup,
         signOut,
         currency,
         setCurrency,
