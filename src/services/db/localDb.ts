@@ -57,11 +57,17 @@ export class LocalDatabaseService implements DatabaseService {
     return groupId;
   }
 
-  async getGroups(userId: string): Promise<Group[]> {
+  async getGroups(userId: string, userEmail?: string): Promise<Group[]> {
     const groups = await this.getGroupsList();
-    // In local-first, the current user might have different uids, but we'll return
-    // groups where the user is in memberIds or created the group.
-    return groups.filter((g) => g.createdBy === userId || g.memberIds.includes(userId));
+    // Return groups where the user is the creator, in memberIds, or matches a member's email
+    return groups.filter((g) => {
+      const isCreator = g.createdBy === userId;
+      const isMemberId = g.memberIds.includes(userId);
+      const isMemberEmail = userEmail 
+        ? g.members.some((m) => m.email && m.email.toLowerCase() === userEmail.toLowerCase()) 
+        : false;
+      return isCreator || isMemberId || isMemberEmail;
+    });
   }
 
   async getGroupDetails(groupId: string): Promise<Group | null> {

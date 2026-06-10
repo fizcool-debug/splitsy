@@ -38,13 +38,18 @@ export class FirebaseDatabaseService implements DatabaseService {
       });
     });
 
+    const memberEmails = groupMembers
+      .map((m) => m.email?.toLowerCase())
+      .filter(Boolean) as string[];
+
     const newGroupData = {
       name,
       description,
       createdAt: Date.now(),
       createdBy: creatorId,
       members: groupMembers,
-      memberIds: groupMembers.map((m) => m.id)
+      memberIds: groupMembers.map((m) => m.id),
+      memberEmails
     };
 
     // Add document to groups
@@ -56,20 +61,37 @@ export class FirebaseDatabaseService implements DatabaseService {
     return docRef.id;
   }
 
-  async getGroups(userId: string): Promise<Group[]> {
+  async getGroups(userId: string, userEmail?: string): Promise<Group[]> {
     const dbInstance = this.getDbInstance();
+    const groups: Group[] = [];
+    
+    // 1. Fetch groups where memberIds contains userId
     const q = query(
       collection(dbInstance, 'groups'),
       where('memberIds', 'array-contains', userId)
     );
 
     const querySnapshot = await getDocs(q);
-    const groups: Group[] = [];
     querySnapshot.forEach((doc) => {
       groups.push({ ...doc.data() } as Group);
     });
 
-    // Also fetch groups created by this user as a fallback
+    // 2. Fetch groups where memberEmails contains userEmail
+    if (userEmail) {
+      const qEmail = query(
+        collection(dbInstance, 'groups'),
+        where('memberEmails', 'array-contains', userEmail.toLowerCase())
+      );
+      const emailSnapshot = await getDocs(qEmail);
+      emailSnapshot.forEach((doc) => {
+        const g = doc.data() as Group;
+        if (!groups.some((existing) => existing.id === g.id)) {
+          groups.push(g);
+        }
+      });
+    }
+
+    // 3. Fetch groups created by this user as a fallback
     const qCreated = query(
       collection(dbInstance, 'groups'),
       where('createdBy', '==', userId)

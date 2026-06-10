@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { calculateBalances, simplifyDebts } from '../utils/balanceCalculator';
 import { Modal } from '../components/Modal';
+import { getMemberIdForUser } from '../utils/userResolver';
 import { 
   ArrowLeft, 
   Plus, 
@@ -41,6 +42,10 @@ export const GroupDetails: React.FC = () => {
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'expenses' | 'balances'>('expenses');
+
+  const myMemberId = React.useMemo(() => {
+    return getMemberIdForUser(currentGroup, user);
+  }, [currentGroup, user]);
   
   // Modals state
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
@@ -78,7 +83,7 @@ export const GroupDetails: React.FC = () => {
 
   // Initialize custom splits if they are empty
   const openAddExpenseModal = () => {
-    setExpensePaidBy(user?.uid || currentGroup.members[0]?.id || '');
+    setExpensePaidBy(myMemberId || currentGroup.members[0]?.id || '');
     const initialSplits: Record<string, string> = {};
     currentGroup.members.forEach((m) => {
       initialSplits[m.id] = '';
@@ -214,7 +219,7 @@ export const GroupDetails: React.FC = () => {
   };
 
   const getMemberName = (id: string) => {
-    if (id === user?.uid) return 'You';
+    if (id === myMemberId) return 'You';
     return currentGroup.members.find((m) => m.id === id)?.name || 'Unknown';
   };
 
@@ -285,9 +290,9 @@ export const GroupDetails: React.FC = () => {
             ) : (
               <div className="expenses-list">
                 {expenses.map((exp) => {
-                  const userPaid = exp.paidBy === user?.uid;
+                  const userPaid = exp.paidBy === myMemberId;
                   // Find what user owes or is owed
-                  const userSplit = exp.splits.find((s) => s.memberId === user?.uid);
+                  const userSplit = exp.splits.find((s) => s.memberId === myMemberId);
                   const userOwedShare = userPaid ? exp.amount - (userSplit ? userSplit.amount : 0) : 0;
                   const userOwesShare = !userPaid && userSplit ? userSplit.amount : 0;
 
@@ -329,7 +334,7 @@ export const GroupDetails: React.FC = () => {
                         )}
                         
                         {/* Option to delete expense (Creator or Payer) */}
-                        {(exp.createdById === user?.uid || exp.paidBy === user?.uid) && (
+                        {(exp.createdById === user?.uid || exp.paidBy === myMemberId) && (
                           <button 
                             className="btn-delete-expense"
                             onClick={() => handleDeleteExpense(exp.id)}
@@ -359,8 +364,8 @@ export const GroupDetails: React.FC = () => {
               ) : (
                 <div className="debts-list">
                   {simplifiedDebts.map((debt, index) => {
-                    const isUserDebtor = debt.fromId === user?.uid;
-                    const isUserCreditor = debt.toId === user?.uid;
+                    const isUserDebtor = debt.fromId === myMemberId;
+                    const isUserCreditor = debt.toId === myMemberId;
 
                     return (
                       <div key={index} className="debt-item">
@@ -398,7 +403,7 @@ export const GroupDetails: React.FC = () => {
                 {memberBalances.map((mb) => {
                   const isPositive = mb.netBalance > 0.01;
                   const isNegative = mb.netBalance < -0.01;
-                  const isMe = mb.memberId === user?.uid;
+                  const isMe = mb.memberId === myMemberId;
 
                   return (
                     <div key={mb.memberId} className="member-balance-row">

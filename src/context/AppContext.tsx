@@ -108,7 +108,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!user) return;
     setGroupsLoading(true);
     try {
-      const list = await databaseService.getGroups(user.uid);
+      const list = await databaseService.getGroups(user.uid, user.email);
       setGroups(list);
     } catch (error) {
       console.error('Failed to fetch groups:', error);

@@ -43,7 +43,7 @@ export interface Settlement {
 
 export interface DatabaseService {
   createGroup(name: string, description: string, members: Omit<Member, 'id'>[], creatorId: string): Promise<string>;
-  getGroups(userId: string): Promise<Group[]>;
+  getGroups(userId: string, userEmail?: string): Promise<Group[]>;
   getGroupDetails(groupId: string): Promise<Group | null>;
   addExpense(expense: Omit<Expense, 'id'>): Promise<string>;
   deleteExpense(groupId: string, expenseId: string): Promise<void>;

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { databaseService } from '../services/backendSelector';
 import { calculateBalances } from '../utils/balanceCalculator';
+import { getMemberIdForUser } from '../utils/userResolver';
 import { Modal } from '../components/Modal';
 import { 
   Plus, 
@@ -57,9 +58,9 @@ export const Dashboard: React.FC = () => {
             ]);
             const calculated = calculateBalances(group, expenses, settlements);
             // Find current user's balance in this group
-            // Note: in local-first, the creator has user.uid, other members have generated IDs
-            // The creator is mapped to creatorId (which is user.uid)
-            const userBalance = calculated.find((b) => b.memberId === user.uid);
+            // We resolve the memberId dynamically using direct UID or email matching.
+            const myMemberId = getMemberIdForUser(group, user);
+            const userBalance = calculated.find((b) => b.memberId === myMemberId);
             balancesMap[group.id] = userBalance ? userBalance.netBalance : 0;
           })
         );
