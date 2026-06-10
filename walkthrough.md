@@ -31,12 +31,12 @@ To transition Splitsy from local database storage (IndexedDB) to shared real-tim
 1. Open the [Firebase Console](https://console.firebase.google.com/).
 2. Click **Add Project** and name the project (e.g., `splitsy-app`).
 
-### Step 2: Configure App and Services
+### Step 2: Configure Services on the Console
 1. **Enable Authentication**:
-   * Go to **Build** -> **Authentication** in the left sidebar.
-   * Click **Get Started**, choose **Email/Password**, and toggle it to **Enabled**.
+   * Go to **Product categories** -> **Security** -> **Authentication** in the left sidebar.
+   * Click **Get Started**, select the **Sign-in method** tab, click **Email/Password**, and toggle it to **Enabled**.
 2. **Create Firestore Database**:
-   * Go to **Build** -> **Firestore Database**.
+   * Go to **Product categories** -> **Databases & Storage** -> **Firestore Database** in the left sidebar.
    * Click **Create Database**.
    * Select a region close to your target users and start in **Production Mode**.
 
