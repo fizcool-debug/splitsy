@@ -16,7 +16,8 @@ import {
   Beer,
   Calendar,
   Layers,
-  RefreshCw
+  RefreshCw,
+  LogOut
 } from 'lucide-react';
 import './GroupDetails.css';
 
@@ -239,6 +240,14 @@ export const GroupDetails: React.FC = () => {
     }
   };
 
+  const triggerLeaveGroup = () => {
+    if (!isSettled) {
+      alert(`You cannot leave this group because you have an outstanding balance of ${currency}${myNetBalance.toFixed(2)}. Please settle up first.`);
+      return;
+    }
+    handleLeaveGroup();
+  };
+
   const getCategoryIcon = (categoryValue: string) => {
     const cat = CATEGORIES.find((c) => c.value === categoryValue);
     const Icon = cat ? cat.icon : FileText;
@@ -274,6 +283,25 @@ export const GroupDetails: React.FC = () => {
             }}
           >
             <RefreshCw size={18} className={currentGroupLoading ? 'spin' : ''} />
+          </button>
+          <button 
+            className="btn btn-secondary btn-icon" 
+            onClick={triggerLeaveGroup}
+            disabled={leaving}
+            title="Leave Group"
+            aria-label="Leave Group"
+            style={{ 
+              padding: '0.625rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '12px',
+              color: 'var(--danger)',
+              background: 'rgba(244, 63, 94, 0.05)',
+              border: '1px solid rgba(244, 63, 94, 0.15)'
+            }}
+          >
+            <LogOut size={18} />
           </button>
           <button className="btn btn-secondary" onClick={() => openSettleModal()}>
             Settle Up
