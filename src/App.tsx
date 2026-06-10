@@ -15,7 +15,7 @@ function AppContent() {
   if (authLoading) {
     return (
       <div className="app-loading-screen animate-fade">
-        <div className="logo-spinner">S</div>
+        <img src="/pwa-192x192.png" className="logo-spinner-img" alt="Splitsy Logo" />
         <p>Loading Splitsy...</p>
       </div>
     );

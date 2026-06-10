@@ -129,7 +129,7 @@ export const AuthScreen: React.FC = () => {
     <div className="auth-container animate-fade">
       <div className="auth-box glass-panel">
         <div className="auth-header">
-          <div className="auth-logo">S</div>
+          <img src="/pwa-192x192.png" className="auth-logo-img" alt="Splitsy Logo" />
           <h1 className="auth-title text-gradient">Splitsy</h1>
           <p className="auth-subtitle">Split expenses, not friendships</p>
         </div>
