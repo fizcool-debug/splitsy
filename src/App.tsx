@@ -6,6 +6,7 @@ import { GroupDetails } from './pages/GroupDetails';
 import { Analytics } from './pages/Analytics';
 import { Settings } from './pages/Settings';
 import { Navigation } from './components/Navigation';
+import { InstallPrompt } from './components/InstallPrompt';
 import './App.css';
 
 function AppContent() {
@@ -22,7 +23,12 @@ function AppContent() {
   }
 
   if (!user) {
-    return <AuthScreen />;
+    return (
+      <>
+        <AuthScreen />
+        <InstallPrompt />
+      </>
+    );
   }
 
   return (
@@ -40,6 +46,8 @@ function AppContent() {
           <Settings />
         )}
       </div>
+
+      <InstallPrompt />
     </div>
   );
 }

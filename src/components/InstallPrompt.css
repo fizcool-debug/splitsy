@@ -1,0 +1,126 @@
+.install-prompt-overlay {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--spacing-md);
+  z-index: 2000;
+  display: flex;
+  justify-content: center;
+  pointer-events: none; /* Let clicks pass through outside the card */
+}
+
+.install-prompt-card {
+  width: 100%;
+  max-width: 460px;
+  position: relative;
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 1px rgba(255, 255, 255, 0.15);
+  pointer-events: auto; /* Enable clicks on the card itself */
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.install-prompt-close {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.install-prompt-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.install-prompt-body {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: flex-start;
+}
+
+.install-prompt-icon-wrapper {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: rgba(143, 67, 255, 0.15);
+  border: 1px solid rgba(143, 67, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.install-prompt-text-block {
+  flex: 1;
+}
+
+.install-prompt-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.install-prompt-desc {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.install-prompt-ios-steps {
+  margin-top: 4px;
+}
+
+.ios-steps-list {
+  margin: var(--spacing-xs) 0 0 0;
+  padding-left: var(--spacing-md);
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.ios-steps-list li {
+  margin-bottom: 4px;
+}
+
+.install-prompt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
+}
+
+@media (max-width: 480px) {
+  .install-prompt-overlay {
+    padding: var(--spacing-sm);
+  }
+  
+  .install-prompt-card {
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+  }
+  
+  .install-prompt-body {
+    gap: var(--spacing-sm);
+  }
+  
+  .install-prompt-icon-wrapper {
+    width: 40px;
+    height: 40px;
+  }
+}
