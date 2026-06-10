@@ -1,7 +1,6 @@
 import { 
   collection, 
   doc, 
-  addDoc, 
   getDocs, 
   getDoc, 
   setDoc, 
@@ -24,6 +23,7 @@ export class FirebaseDatabaseService implements DatabaseService {
   async createGroup(name: string, description: string, members: Omit<Member, 'id'>[], creatorId: string): Promise<string> {
     const dbInstance = this.getDbInstance();
     const groupCollectionRef = collection(dbInstance, 'groups');
+    const docRef = doc(groupCollectionRef); // Pre-generate ID
     
     // Create members with unique IDs (using client-side generation or database)
     const groupMembers: Member[] = [
@@ -43,6 +43,7 @@ export class FirebaseDatabaseService implements DatabaseService {
       .filter(Boolean) as string[];
 
     const newGroupData = {
+      id: docRef.id,
       name,
       description,
       createdAt: Date.now(),
@@ -52,11 +53,8 @@ export class FirebaseDatabaseService implements DatabaseService {
       memberEmails
     };
 
-    // Add document to groups
-    const docRef = await addDoc(groupCollectionRef, newGroupData);
-    
-    // Save the ID inside the document as well
-    await setDoc(docRef, { ...newGroupData, id: docRef.id });
+    // Set document inside Firestore in a single write operation
+    await setDoc(docRef, newGroupData);
     
     return docRef.id;
   }
@@ -121,9 +119,10 @@ export class FirebaseDatabaseService implements DatabaseService {
   async addExpense(expense: Omit<Expense, 'id'>): Promise<string> {
     const dbInstance = this.getDbInstance();
     const expenseCollectionRef = collection(dbInstance, 'groups', expense.groupId, 'expenses');
+    const docRef = doc(expenseCollectionRef); // Pre-generate ID
     
-    const docRef = await addDoc(expenseCollectionRef, expense);
-    await setDoc(docRef, { ...expense, id: docRef.id });
+    const newExpense = { ...expense, id: docRef.id };
+    await setDoc(docRef, newExpense);
     
     return docRef.id;
   }
@@ -153,9 +152,10 @@ export class FirebaseDatabaseService implements DatabaseService {
   async addSettlement(settlement: Omit<Settlement, 'id'>): Promise<string> {
     const dbInstance = this.getDbInstance();
     const settlementCollectionRef = collection(dbInstance, 'groups', settlement.groupId, 'settlements');
+    const docRef = doc(settlementCollectionRef); // Pre-generate ID
     
-    const docRef = await addDoc(settlementCollectionRef, settlement);
-    await setDoc(docRef, { ...settlement, id: docRef.id });
+    const newSettlement = { ...settlement, id: docRef.id };
+    await setDoc(docRef, newSettlement);
     
     return docRef.id;
   }

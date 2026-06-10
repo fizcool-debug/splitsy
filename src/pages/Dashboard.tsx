@@ -13,7 +13,8 @@ import {
   DollarSign, 
   Users, 
   ChevronRight,
-  FolderPlus
+  FolderPlus,
+  AlertCircle
 } from 'lucide-react';
 import './Dashboard.css';
 
@@ -34,6 +35,7 @@ export const Dashboard: React.FC = () => {
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   // Per-group balances map
   const [groupBalances, setGroupBalances] = useState<Record<string, number>>({});
@@ -103,6 +105,7 @@ export const Dashboard: React.FC = () => {
     e.preventDefault();
     if (!groupName.trim()) return;
     setSubmitting(true);
+    setError('');
     
     // Auto-add the currently typed member if they forgot to click the "+" button
     const finalMembers = [...members];
@@ -121,9 +124,11 @@ export const Dashboard: React.FC = () => {
       setMembers([]);
       setNewMemberName('');
       setNewMemberEmail('');
+      setError('');
       setIsModalOpen(false);
-    } catch (error) {
-      console.error('Error creating group:', error);
+    } catch (err: any) {
+      console.error('Error creating group:', err);
+      setError(err.message || 'Failed to create group. Please check database permissions.');
     } finally {
       setSubmitting(false);
     }
@@ -261,10 +266,28 @@ export const Dashboard: React.FC = () => {
           setGroupName('');
           setDescription('');
           setMembers([]);
+          setError('');
         }}
         title="Create New Group"
       >
         <form onSubmit={handleCreateGroup} className="create-group-form">
+          {error && (
+            <div className="error-message animate-fade" style={{ 
+              background: 'rgba(239, 68, 68, 0.15)', 
+              color: '#f87171', 
+              padding: '0.75rem 1rem', 
+              borderRadius: '8px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              fontSize: '0.875rem', 
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              marginBottom: '1.25rem'
+            }}>
+              <AlertCircle size={18} />
+              <span>{error}</span>
+            </div>
+          )}
           <div className="form-group">
             <label htmlFor="group-name-input">Group Name</label>
             <input 
