@@ -14,7 +14,8 @@ import {
   Users, 
   ChevronRight,
   FolderPlus,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import './Dashboard.css';
 
@@ -25,7 +26,8 @@ export const Dashboard: React.FC = () => {
     groupsLoading, 
     createGroup, 
     setCurrentGroupId,
-    currency
+    currency,
+    refreshGroups
   } = useApp();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -142,10 +144,28 @@ export const Dashboard: React.FC = () => {
           <h1 className="welcome-text">Hey, {user?.displayName}</h1>
           <p className="subtitle-text">Here's your expense summary</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
-          <Plus size={20} />
-          <span>New Group</span>
-        </button>
+        <div className="header-actions" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button 
+            className="btn btn-secondary btn-icon" 
+            onClick={refreshGroups}
+            disabled={groupsLoading}
+            title="Sync with database"
+            aria-label="Sync with database"
+            style={{ 
+              padding: '0.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '12px'
+            }}
+          >
+            <RefreshCw size={20} className={groupsLoading ? 'spin' : ''} />
+          </button>
+          <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
+            <Plus size={20} />
+            <span>New Group</span>
+          </button>
+        </div>
       </header>
 
       {/* Summary Balance Cards */}

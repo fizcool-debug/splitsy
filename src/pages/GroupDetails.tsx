@@ -15,7 +15,8 @@ import {
   Zap, 
   Beer,
   Calendar,
-  Layers
+  Layers,
+  RefreshCw
 } from 'lucide-react';
 import './GroupDetails.css';
 
@@ -38,7 +39,8 @@ export const GroupDetails: React.FC = () => {
     addExpense,
     deleteExpense,
     addSettlement,
-    currency
+    currency,
+    refreshCurrentGroup
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'expenses' | 'balances'>('expenses');
@@ -231,14 +233,29 @@ export const GroupDetails: React.FC = () => {
           <ArrowLeft size={20} />
           <span>Back to Groups</span>
         </button>
-        <div className="group-action-btns">
-          <button className="btn btn-secondary" onClick={() => openSettleModal()}>
-            <CheckCircle size={18} />
-            <span>Settle Up</span>
+        <div className="group-action-btns" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button 
+            className="btn btn-secondary btn-icon" 
+            onClick={refreshCurrentGroup}
+            disabled={currentGroupLoading}
+            title="Sync with database"
+            aria-label="Sync with database"
+            style={{ 
+              padding: '0.625rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '12px'
+            }}
+          >
+            <RefreshCw size={18} className={currentGroupLoading ? 'spin' : ''} />
           </button>
-          <button className="btn btn-primary" onClick={openAddExpenseModal}>
+          <button className="btn btn-secondary" onClick={() => openSettleModal()}>
+            Settle Up
+          </button>
+          <button className="btn btn-primary" onClick={() => openAddExpenseModal()}>
             <Plus size={18} />
-            <span>Add Expense</span>
+            <span>Add Bill</span>
           </button>
         </div>
       </nav>
