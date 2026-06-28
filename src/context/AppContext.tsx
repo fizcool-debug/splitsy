@@ -25,9 +25,11 @@ interface AppContextType {
   refreshCurrentGroup: () => Promise<void>;
   createGroup: (name: string, description: string, members: Omit<Member, 'id'>[]) => Promise<string>;
   addExpense: (expense: Omit<Expense, 'id' | 'createdById'>) => Promise<string>;
+  updateExpense: (expense: Expense) => Promise<void>;
   deleteExpense: (expenseId: string) => Promise<void>;
   addSettlement: (settlement: Omit<Settlement, 'id' | 'createdById'>) => Promise<string>;
   leaveGroup: (groupId: string, memberId: string) => Promise<void>;
+  addGroupMember: (groupId: string, member: Omit<Member, 'id'>) => Promise<Member>;
   signOut: () => Promise<void>;
   currency: string;
   setCurrency: (symbol: string) => void;
@@ -186,6 +188,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return expenseId;
   };
 
+  const updateExpense = async (expense: Expense) => {
+    if (!user || !currentGroupId) throw new Error('Not authorized');
+    await databaseService.updateExpense(currentGroupId, expense);
+    await refreshCurrentGroup();
+  };
+
   const deleteExpense = async (expenseId: string) => {
     if (!user || !currentGroupId) throw new Error('Not authorized');
     await databaseService.deleteExpense(currentGroupId, expenseId);
@@ -206,6 +214,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!user) throw new Error('Not authenticated');
     await databaseService.leaveGroup(groupId, memberId);
     await refreshGroups();
+  };
+
+  const addGroupMember = async (groupId: string, member: Omit<Member, 'id'>) => {
+    if (!user) throw new Error('Not authenticated');
+    const newMember = await databaseService.addGroupMember(groupId, member);
+    await refreshCurrentGroup();
+    await refreshGroups();
+    return newMember;
   };
 
   const signOut = async () => {
@@ -242,9 +258,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         refreshCurrentGroup,
         createGroup,
         addExpense,
+        updateExpense,
         deleteExpense,
         addSettlement,
         leaveGroup,
+        addGroupMember,
         signOut,
         currency,
         setCurrency,

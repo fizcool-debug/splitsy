@@ -13,6 +13,7 @@ export interface Group {
   createdBy: string;
   members: Member[];
   memberIds: string[];
+  memberEmails?: string[];
 }
 
 export interface SplitDetail {
@@ -47,9 +48,11 @@ export interface DatabaseService {
   getGroups(userId: string, userEmail?: string): Promise<Group[]>;
   getGroupDetails(groupId: string): Promise<Group | null>;
   addExpense(expense: Omit<Expense, 'id'>): Promise<string>;
+  updateExpense(groupId: string, expense: Expense): Promise<void>;
   deleteExpense(groupId: string, expenseId: string): Promise<void>;
   getExpenses(groupId: string): Promise<Expense[]>;
   addSettlement(settlement: Omit<Settlement, 'id'>): Promise<string>;
   getSettlements(groupId: string): Promise<Settlement[]>;
   leaveGroup(groupId: string, memberId: string): Promise<void>;
+  addGroupMember(groupId: string, member: Omit<Member, 'id'>): Promise<Member>;
 }

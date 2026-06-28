@@ -128,6 +128,12 @@ export class FirebaseDatabaseService implements DatabaseService {
     return docRef.id;
   }
 
+  async updateExpense(groupId: string, expense: Expense): Promise<void> {
+    const dbInstance = this.getDbInstance();
+    const docRef = doc(dbInstance, 'groups', groupId, 'expenses', expense.id);
+    await setDoc(docRef, expense);
+  }
+
   async deleteExpense(groupId: string, expenseId: string): Promise<void> {
     const dbInstance = this.getDbInstance();
     const docRef = doc(dbInstance, 'groups', groupId, 'expenses', expenseId);
@@ -219,5 +225,43 @@ export class FirebaseDatabaseService implements DatabaseService {
       memberEmails: updatedMemberEmails,
       createdBy: newCreatedBy
     });
+  }
+
+  async addGroupMember(groupId: string, member: Omit<Member, 'id'>): Promise<Member> {
+    const dbInstance = this.getDbInstance();
+    const docRef = doc(dbInstance, 'groups', groupId);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) {
+      throw new Error('Group not found');
+    }
+    const groupData = docSnap.data() as Group;
+    const newMemberId = 'member_' + Math.random().toString(36).substr(2, 9);
+    const newMember: Member = {
+      id: newMemberId,
+      name: member.name,
+      email: member.email,
+      username: member.username
+    };
+
+    const updatedMembers = [...(groupData.members || []), newMember];
+    const updatedMemberIds = [...(groupData.memberIds || []), newMemberId];
+    
+    // Update emails list
+    let updatedMemberEmails = groupData.memberEmails || [];
+    if (member.email) {
+      const emailLower = member.email.toLowerCase();
+      if (!updatedMemberEmails.includes(emailLower)) {
+        updatedMemberEmails = [...updatedMemberEmails, emailLower];
+      }
+    }
+
+    await setDoc(docRef, {
+      ...groupData,
+      members: updatedMembers,
+      memberIds: updatedMemberIds,
+      memberEmails: updatedMemberEmails
+    });
+
+    return newMember;
   }
 }

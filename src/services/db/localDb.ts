@@ -91,6 +91,16 @@ export class LocalDatabaseService implements DatabaseService {
     return expenseId;
   }
 
+  async updateExpense(groupId: string, expense: Expense): Promise<void> {
+    const key = `expenses_${groupId}`;
+    const expenses = (await localforage.getItem<Expense[]>(key)) || [];
+    const index = expenses.findIndex((e) => e.id === expense.id);
+    if (index !== -1) {
+      expenses[index] = expense;
+      await localforage.setItem(key, expenses);
+    }
+  }
+
   async deleteExpense(groupId: string, expenseId: string): Promise<void> {
     const key = `expenses_${groupId}`;
     const expenses = (await localforage.getItem<Expense[]>(key)) || [];
@@ -165,5 +175,34 @@ export class LocalDatabaseService implements DatabaseService {
     };
 
     await this.saveGroupsList(groups);
+  }
+
+  async addGroupMember(groupId: string, member: Omit<Member, 'id'>): Promise<Member> {
+    const groups = await this.getGroupsList();
+    const groupIndex = groups.findIndex((g) => g.id === groupId);
+    if (groupIndex === -1) {
+      throw new Error('Group does not exist.');
+    }
+
+    const group = groups[groupIndex];
+    const newMemberId = 'member_' + Math.random().toString(36).substr(2, 9);
+    const newMember: Member = {
+      id: newMemberId,
+      name: member.name,
+      email: member.email,
+      username: member.username
+    };
+
+    const updatedMembers = [...(group.members || []), newMember];
+    const updatedMemberIds = [...(group.memberIds || []), newMemberId];
+
+    groups[groupIndex] = {
+      ...group,
+      members: updatedMembers,
+      memberIds: updatedMemberIds
+    };
+
+    await this.saveGroupsList(groups);
+    return newMember;
   }
 }

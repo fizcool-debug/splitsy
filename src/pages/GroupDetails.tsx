@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { calculateBalances, simplifyDebts } from '../utils/balanceCalculator';
 import { Modal } from '../components/Modal';
 import { getMemberIdForUser } from '../utils/userResolver';
+import type { Expense, Member, SplitDetail } from '../services/backendSelector';
 import { 
   ArrowLeft, 
   Plus, 
@@ -17,7 +18,10 @@ import {
   Calendar,
   Layers,
   RefreshCw,
-  LogOut
+  LogOut,
+  Edit2,
+  UserPlus,
+  AtSign
 } from 'lucide-react';
 import './GroupDetails.css';
 
@@ -38,11 +42,14 @@ export const GroupDetails: React.FC = () => {
     settlements, 
     setCurrentGroupId,
     addExpense,
+    updateExpense,
     deleteExpense,
     addSettlement,
     currency,
     refreshCurrentGroup,
-    leaveGroup
+    leaveGroup,
+    addGroupMember,
+    getUserByUsername
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'expenses' | 'balances'>('expenses');
@@ -55,6 +62,17 @@ export const GroupDetails: React.FC = () => {
   // Modals state
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [isSettleModalOpen, setIsSettleModalOpen] = useState(false);
+  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+  
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+
+  // Add Member form state
+  const [addMemberInput, setAddMemberInput] = useState('');
+  const [addMemberError, setAddMemberError] = useState('');
+  const [submittingAddMember, setSubmittingAddMember] = useState(false);
+  const [memberLookupStatus, setMemberLookupStatus] = useState<'idle' | 'searching' | 'found' | 'notfound'>('idle');
+  const [memberLookupResult, setMemberLookupResult] = useState<{ name: string; email?: string; username?: string } | null>(null);
+  const [lookupTimer, setLookupTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   
   // Add Expense form state
   const [expenseTitle, setExpenseTitle] = useState('');
@@ -88,6 +106,7 @@ export const GroupDetails: React.FC = () => {
 
   // Initialize custom splits if they are empty
   const openAddExpenseModal = () => {
+    setEditingExpense(null);
     setExpensePaidBy(myMemberId || currentGroup.members[0]?.id || '');
     const initialSplits: Record<string, string> = {};
     currentGroup.members.forEach((m) => {
@@ -98,6 +117,32 @@ export const GroupDetails: React.FC = () => {
     setExpenseAmount('');
     setExpenseCategory('other');
     setSplitType('equal');
+    setExpenseError('');
+    setIsExpenseModalOpen(true);
+  };
+
+  const openEditExpenseModal = (exp: Expense) => {
+    setEditingExpense(exp);
+    setExpenseTitle(exp.title || '');
+    setExpenseAmount(exp.amount.toString());
+    setExpensePaidBy(exp.paidBy || '');
+    setExpenseCategory(exp.category || 'other');
+    
+    // Determine split type (equal vs custom)
+    const membersCount = currentGroup.members.length;
+    const equalShare = parseFloat((exp.amount / membersCount).toFixed(2));
+    const isActuallyEqual = exp.splits && exp.splits.length === membersCount && exp.splits.every((s: SplitDetail) => {
+      return Math.abs(s.amount - equalShare) <= 0.05;
+    });
+    
+    setSplitType(isActuallyEqual ? 'equal' : 'custom');
+
+    const initialSplits: Record<string, string> = {};
+    currentGroup.members.forEach((m) => {
+      const existingSplit = exp.splits ? exp.splits.find((s: SplitDetail) => s.memberId === m.id) : null;
+      initialSplits[m.id] = existingSplit ? existingSplit.amount.toString() : '';
+    });
+    setCustomSplits(initialSplits);
     setExpenseError('');
     setIsExpenseModalOpen(true);
   };
@@ -149,19 +194,31 @@ export const GroupDetails: React.FC = () => {
     setSubmittingExpense(true);
     setExpenseError('');
     try {
-      await addExpense({
-        groupId: currentGroup.id,
-        title: expenseTitle.trim(),
-        amount,
-        date: Date.now(),
-        paidBy: expensePaidBy,
-        category: expenseCategory,
-        splits: splitsData
-      });
+      if (editingExpense) {
+        await updateExpense({
+          ...editingExpense,
+          title: expenseTitle.trim(),
+          amount,
+          paidBy: expensePaidBy,
+          category: expenseCategory,
+          splits: splitsData
+        });
+      } else {
+        await addExpense({
+          groupId: currentGroup.id,
+          title: expenseTitle.trim(),
+          amount,
+          date: Date.now(),
+          paidBy: expensePaidBy,
+          category: expenseCategory,
+          splits: splitsData
+        });
+      }
       setIsExpenseModalOpen(false);
+      setEditingExpense(null);
     } catch (err) {
       console.error(err);
-      setExpenseError('Failed to add expense.');
+      setExpenseError(editingExpense ? 'Failed to update expense.' : 'Failed to add expense.');
     } finally {
       setSubmittingExpense(false);
     }
@@ -204,6 +261,105 @@ export const GroupDetails: React.FC = () => {
       setSettleError('Failed to log settlement.');
     } finally {
       setSubmittingSettlement(false);
+    }
+  };
+
+  const handleMemberInputChange = (val: string) => {
+    setAddMemberInput(val);
+    setMemberLookupResult(null);
+    setAddMemberError('');
+
+    if (lookupTimer) clearTimeout(lookupTimer);
+
+    // If input starts with '@' or looks like a username, try to look up the user
+    const cleaned = val.startsWith('@') ? val.slice(1) : val;
+    if (!cleaned.trim()) {
+      setMemberLookupStatus('idle');
+      return;
+    }
+
+    // Treat as username search if no spaces (usernames have no spaces)
+    if (!cleaned.includes(' ') && cleaned.length >= 2) {
+      setMemberLookupStatus('searching');
+      const timer = setTimeout(async () => {
+        try {
+          const found = await getUserByUsername(cleaned.toLowerCase());
+          if (found) {
+            setMemberLookupResult({ 
+              name: found.displayName, 
+              email: found.email, 
+              username: found.username || cleaned 
+            });
+            setMemberLookupStatus('found');
+          } else {
+            setMemberLookupStatus('notfound');
+            setMemberLookupResult(null);
+          }
+        } catch {
+          setMemberLookupStatus('notfound');
+          setMemberLookupResult(null);
+        }
+      }, 500);
+      setLookupTimer(timer);
+    } else {
+      // Multi-word input treated as plain name
+      setMemberLookupStatus('idle');
+    }
+  };
+
+  const handleAddMemberSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const raw = addMemberInput.trim();
+    if (!raw) return;
+
+    let memberToAdd: Omit<Member, 'id'>;
+
+    if (memberLookupResult) {
+      memberToAdd = { 
+        name: memberLookupResult.name, 
+        email: memberLookupResult.email, 
+        username: memberLookupResult.username 
+      };
+    } else {
+      // Add as plain name-only member (offline/unregistered)
+      const cleaned = raw.startsWith('@') ? raw.slice(1) : raw;
+      memberToAdd = { name: cleaned };
+    }
+
+    // Validation: Check for duplicates in existing members
+    const isDuplicate = currentGroup.members.some((m) => {
+      // Match by username if available
+      if (m.username && memberToAdd.username && m.username.toLowerCase() === memberToAdd.username.toLowerCase()) {
+        return true;
+      }
+      // Match by email if available
+      if (m.email && memberToAdd.email && m.email.toLowerCase() === memberToAdd.email.toLowerCase()) {
+        return true;
+      }
+      // Match by name (case-insensitive)
+      return m.name.toLowerCase() === memberToAdd.name.toLowerCase();
+    });
+
+    if (isDuplicate) {
+      setAddMemberError('This member is already in the group.');
+      return;
+    }
+
+    setSubmittingAddMember(true);
+    setAddMemberError('');
+    try {
+      await addGroupMember(currentGroup.id, memberToAdd);
+      
+      // Reset form
+      setAddMemberInput('');
+      setMemberLookupStatus('idle');
+      setMemberLookupResult(null);
+      setIsAddMemberModalOpen(false);
+    } catch (err: any) {
+      console.error(err);
+      setAddMemberError(err.message || 'Failed to add member to the group.');
+    } finally {
+      setSubmittingAddMember(false);
     }
   };
 
@@ -276,7 +432,7 @@ export const GroupDetails: React.FC = () => {
           <ArrowLeft size={20} />
           <span>Back to Groups</span>
         </button>
-        <div className="group-action-btns" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div className="group-action-btns" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <button 
             className="btn btn-secondary btn-icon" 
             onClick={() => refreshCurrentGroup()}
@@ -292,6 +448,21 @@ export const GroupDetails: React.FC = () => {
             }}
           >
             <RefreshCw size={18} className={currentGroupLoading ? 'spin' : ''} />
+          </button>
+          <button 
+            className="btn btn-secondary btn-icon" 
+            onClick={() => setIsAddMemberModalOpen(true)}
+            title="Add Member"
+            aria-label="Add Member"
+            style={{ 
+              padding: '0.625rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '12px'
+            }}
+          >
+            <UserPlus size={18} />
           </button>
           <button 
             className="btn btn-secondary btn-icon" 
@@ -420,16 +591,26 @@ export const GroupDetails: React.FC = () => {
                           </div>
                         )}
                         
-                        {/* Option to delete expense (Creator or Payer) */}
+                        {/* Option to edit/delete expense (Creator or Payer) */}
                         {(exp.createdById === user?.uid || exp.paidBy === myMemberId) && (
-                          <button 
-                            className="btn-delete-expense"
-                            onClick={() => handleDeleteExpense(exp.id)}
-                            title="Delete expense"
-                            aria-label="Delete expense"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          <div className="expense-actions">
+                            <button 
+                              className="btn-edit-expense"
+                              onClick={() => openEditExpenseModal(exp)}
+                              title="Edit expense"
+                              aria-label="Edit expense"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button 
+                              className="btn-delete-expense"
+                              onClick={() => handleDeleteExpense(exp.id)}
+                              title="Delete expense"
+                              aria-label="Delete expense"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -443,6 +624,9 @@ export const GroupDetails: React.FC = () => {
             {/* Simplified Debts Card */}
             <div className="balances-section glass-panel">
               <h3 className="section-sub-title">Suggested Payments (Simplified)</h3>
+              <p className="member-search-hint" style={{ marginTop: '-0.5rem', marginBottom: '1.25rem' }}>
+                Balances are netted out across all bills to minimize the total number of payments needed to settle up.
+              </p>
               {simplifiedDebts.length === 0 ? (
                 <div className="empty-debts">
                   <CheckCircle size={36} className="text-success" />
@@ -485,7 +669,17 @@ export const GroupDetails: React.FC = () => {
 
             {/* Complete Balances Breakdown */}
             <div className="balances-section glass-panel">
-              <h3 className="section-sub-title">Individual Balances Breakdown</h3>
+              <div className="balances-header-row">
+                <h3 className="section-sub-title" style={{ margin: 0 }}>Individual Balances Breakdown</h3>
+                <button 
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setIsAddMemberModalOpen(true)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}
+                >
+                  <UserPlus size={14} />
+                  <span>Add Member</span>
+                </button>
+              </div>
               <div className="members-balances-list">
                 {memberBalances.map((mb) => {
                   if (!mb) return null;
@@ -562,8 +756,11 @@ export const GroupDetails: React.FC = () => {
       {/* Add Expense Modal */}
       <Modal
         isOpen={isExpenseModalOpen}
-        onClose={() => setIsExpenseModalOpen(false)}
-        title="Add Shared Expense"
+        onClose={() => {
+          setIsExpenseModalOpen(false);
+          setEditingExpense(null);
+        }}
+        title={editingExpense ? "Edit Shared Expense" : "Add Shared Expense"}
       >
         <form onSubmit={handleExpenseSubmit} className="add-expense-form">
           {expenseError && (
@@ -687,7 +884,10 @@ export const GroupDetails: React.FC = () => {
             <button 
               type="button" 
               className="btn btn-secondary" 
-              onClick={() => setIsExpenseModalOpen(false)}
+              onClick={() => {
+                setIsExpenseModalOpen(false);
+                setEditingExpense(null);
+              }}
               disabled={submittingExpense}
             >
               Cancel
@@ -697,7 +897,7 @@ export const GroupDetails: React.FC = () => {
               className="btn btn-primary"
               disabled={submittingExpense || !expenseTitle.trim() || !expenseAmount}
             >
-              {submittingExpense ? <span className="spinner"></span> : 'Add Bill'}
+              {submittingExpense ? <span className="spinner"></span> : (editingExpense ? 'Save Changes' : 'Add Bill')}
             </button>
           </div>
         </form>
@@ -778,6 +978,82 @@ export const GroupDetails: React.FC = () => {
               disabled={submittingSettlement || !settleAmount || settleFrom === settleTo}
             >
               {submittingSettlement ? <span className="spinner"></span> : 'Record Payment'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Add Member Modal */}
+      <Modal
+        isOpen={isAddMemberModalOpen}
+        onClose={() => {
+          setIsAddMemberModalOpen(false);
+          setAddMemberInput('');
+          setMemberLookupStatus('idle');
+          setMemberLookupResult(null);
+          setAddMemberError('');
+        }}
+        title="Add Group Member"
+      >
+        <form onSubmit={handleAddMemberSubmit} className="add-member-form">
+          {addMemberError && (
+            <div className="expense-error animate-fade" style={{ marginBottom: '1rem' }}>
+              <span className="error-message">{addMemberError}</span>
+            </div>
+          )}
+
+          <div className="form-group">
+            <label htmlFor="add-member-input">Name or @username</label>
+            <p className="member-search-hint" style={{ marginTop: '2px', marginBottom: '8px' }}>
+              Type a @username to find registered users, or type a name to add manually.
+            </p>
+            <div className="member-input-wrapper">
+              <AtSign size={16} className="member-input-icon" />
+              <input 
+                id="add-member-input"
+                type="text" 
+                placeholder="e.g. @john_doe or Jane" 
+                value={addMemberInput}
+                onChange={(e) => handleMemberInputChange(e.target.value)}
+                required
+                disabled={submittingAddMember}
+                autoComplete="off"
+              />
+              {memberLookupStatus === 'searching' && (
+                <span className="member-lookup-indicator searching">Searching...</span>
+              )}
+              {memberLookupStatus === 'found' && memberLookupResult && (
+                <span className="member-lookup-indicator found">
+                  <CheckCircle size={13} /> Found user: {memberLookupResult.name}
+                </span>
+              )}
+              {memberLookupStatus === 'notfound' && addMemberInput.trim().length > 0 && (
+                <span className="member-lookup-indicator notfound">Not a registered user — will be added as guest</span>
+              )}
+            </div>
+          </div>
+
+          <div className="modal-actions" style={{ marginTop: '1.5rem' }}>
+            <button 
+              type="button" 
+              className="btn btn-secondary" 
+              onClick={() => {
+                setIsAddMemberModalOpen(false);
+                setAddMemberInput('');
+                setMemberLookupStatus('idle');
+                setMemberLookupResult(null);
+                setAddMemberError('');
+              }}
+              disabled={submittingAddMember}
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="btn btn-primary"
+              disabled={submittingAddMember || !addMemberInput.trim()}
+            >
+              {submittingAddMember ? <span className="spinner"></span> : 'Add Member'}
             </button>
           </div>
         </form>
